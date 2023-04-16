@@ -1,2 +1,3 @@
 # Loogle
-A local search Engine in Zig
+
+A local search Engine in Zig and Julia
