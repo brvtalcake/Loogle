@@ -262,3 +262,5 @@ src/loogle_indexer_build/share/julia/artifacts/416d108e827d01dce771c4cbee18f8dcf
 src/loogle_indexer_build/share/julia/artifacts/416d108e827d01dce771c4cbee18f8dcff37a3b3/share/licenses/OpenSSL/LICENSE filter=lfs diff=lfs merge=lfs -text
 src/loogle_indexer_build/**/**/**/**/**/**/**/**/** filter=lfs diff=lfs merge=lfs -text
 src/loogle_indexer_build/**/**/**/**/**/**/**/**/* filter=lfs diff=lfs merge=lfs -text
+
+src/loogle_indexer_build/** linguist-generated

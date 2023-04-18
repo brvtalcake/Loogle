@@ -1,7 +1,11 @@
 module loogle_indexer
 
-include("index.jl")
-include("parsers.jl")
+if !@isdefined(PARSERS_JL_INCLUDED)
+    include("parsers.jl")
+end
+if !@isdefined(INDEX_JL_INCLUDED)
+    include("index.jl")
+end
 
 function main()
     index = Index(ARGS[1])

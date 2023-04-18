@@ -1,3 +1,5 @@
+INDEX_JL_INCLUDED = true
+
 import Base: show, print, println
 import JSON
 import MIMEs

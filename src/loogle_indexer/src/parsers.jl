@@ -1,5 +1,9 @@
+PARSERS_JL_INCLUDED = true
+
 import PDFIO
-include("index.jl")
+if !@isdefined(INDEX_JL_INCLUDED)
+    include("index.jl")
+end
 
 function parsePDF(file_path::String)
     doc = PDFIO.pdDocOpen(file_path)
