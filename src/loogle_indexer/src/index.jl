@@ -5,16 +5,6 @@ import MIMEs
 @enum FileKind FILE_TYPE_NOT_SUPPORTED=1 PDF=2 RTF=4 HTML=8 XML=16 TXT=32 EXCEL=64 DOC=128
 @enum FileFields f_path=1 f_size=2 f_type=4 f_timestamp=8
 
-#= mutable struct FileIndex
-    file_path::String
-    file_size::Int64
-    file_type::FileKind
-    time_stamp::Int64
-end =#
-
-# Make the type `File` a dictionary of file fields
-#= abstract type File <: AbstractDict{FileFields, Any} end =#
-
 mutable struct Index
     root::String
     files::Array{Dict{FileFields, Any}, 1}
@@ -282,68 +272,3 @@ end
 function File(path::String)
     return :(Dict{FileFields, Any}(f_path => $(path), f_type => matchFileType($(path)), f_size => filesize($(path)), f_timestamp => (stat($(path)).mtime > stat($(path)).ctime ? stat($(path)).mtime : stat($(path)).ctime)))
 end
-
-#= 
-function Dict{FileFields, Any}(::String, ::FileKind, ::Int64, ::Float64)
-    return Dict{FileFields, Any}(
-        f_path => String,
-        f_type => FileKind,
-        f_size => Int64,
-        f_timestamp => Float64
-    )
-end
-
-function Dict{FileFields, Any}(::String, ::FileKind, ::Int64)
-    return Dict{FileFields, Any}(
-        f_path => String,
-        f_type => FileKind,
-        f_size => Int64,
-        f_timestamp => Float64
-    )
-end
-
-function Dict{FileFields, Any}(::String, ::FileKind)
-    return Dict{FileFields, Any}(
-        f_path => String,
-        f_type => FileKind,
-        f_size => Int64,
-        f_timestamp => Float64
-    )
-end
-
-function Dict{FileFields, Any}(::String)
-    return Dict{FileFields, Any}(
-        f_path => String,
-        f_type => FileKind,
-        f_size => Int64,
-        f_timestamp => Float64
-    )
-end
-
-function Dict{FileFields, Any}()
-    return Dict{FileFields, Any}(
-        f_path => String,
-        f_type => FileKind,
-        f_size => Int64,
-        f_timestamp => Float64
-    )
-end =#
-
-#= 
-function File(p::String, type::FileKind = FILE_TYPE_NOT_SUPPORTED)
-    return File(Dict{FileFields, Any}(f_path => p, f_type => type, f_size => filesize(p), f_timestamp => (stat(p).mtime > stat(p).ctime ? stat(p).mtime : stat(p).ctime)))
-end
-
-function File(p::String, type::FileKind, size::Int64, timestamp::Float64)
-    #= return Dict{FileFields, Any}(f_path => p, f_type => type, f_size => size, f_timestamp => timestamp) =#
-    new_file = Dict{FileFields, Any}()
-    new_file[f_path] = p
-    new_file[f_type] = type
-    new_file[f_size] = size
-    new_file[f_timestamp] = timestamp
-    return new_file
-end
-
-function File(di::Dict{FileFields, Any})
-    return File(di[f_path], di[f_type], di[f_size], di[f_timestamp])
-end =#
