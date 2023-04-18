@@ -1,0 +1,10 @@
+name = "loogle_indexer"
+uuid = "5746dd06-25ba-4707-b3b8-a2100b615dc2"
+authors = ["brvtalcake <axlpascon@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
+MIMEs = "6c6e2e6c-3030-632d-7369-2d6c69616d65"
+PDFIO = "4d0d745f-9d9a-592e-8d18-1ad8a0f42b92"
+PackageCompiler = "9b87118b-4619-50d2-8e1e-99f35a4d4d9d"

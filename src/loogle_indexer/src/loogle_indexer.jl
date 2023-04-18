@@ -1,12 +1,19 @@
+module loogle_indexer
+
 include("index.jl")
+include("parsers.jl")
 
-index = Index(ARGS[1])
+function main()
+    index = Index(ARGS[1])
+    show(index)
+    indexDir(index)
+    show(index)
+end
 
-show(index)
-
-indexDir(index)
-
-show(index)
+function julia_main()::Cint
+    main()
+    return 0
+end
 
 #= people = [Dict("name"=>"CoolGuy", "company"=>"tech") for i=1:1000]
 companies = [Dict("name"=>"CoolTech", "address"=>"Bay Area") for i=1:100]
@@ -17,3 +24,5 @@ json_string = JSON.json(data)
 open("foo.json","w") do f
   JSON.print(f, json_string)
 end =#
+
+end # module loogle_indexer

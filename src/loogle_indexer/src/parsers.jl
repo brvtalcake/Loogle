@@ -13,20 +13,9 @@ function parsePDF(file_path::String)
             end
             return text
         end
-        #= doc = PDFIO.pdDocOpen(file_path)
-        npage = PDFIO.pdDocGetPageCount(doc)
-        text = ""
-        for i=1:npage
-            page = PDFIO.pdDocGetPage(doc, i)
-            text *= PDFIO.pdPageExtractText(page)
-        end
+    finally
         PDFIO.pdDocClose(doc)
-        return text
-    catch e
-        println("Error parsing file: $file_path")
-        println(e)
-        return ""
-    end =#
+    end
 end
 
 function parseFile(file::Dict{FileFields, Any})
@@ -58,5 +47,5 @@ mutable struct ParsingTask
     errors::Vector{String}
     done::Bool
     ParsingTask() = error("ParsingTask constructor must have at least one file to parse")
-    ParsingTask(file_arr::Array{Dict{FileFields, Any}}) = new{Tuple{Dict{FileFields, Any}, String, Bool}}(Tuple{Dict{FileFields, Any}, String, Bool}[], Task(() -> parseFile(file_arr)), String[], false) # TODO: modify this and modify parseFile
+    #= ParsingTask(file_arr::Array{Dict{FileFields, Any}}) = new{Tuple{Dict{FileFields, Any}, String, Bool}}(Tuple{Dict{FileFields, Any}, String, Bool}[], Task(() -> parseFile(file_arr)), String[], false) =# # TODO: modify this and modify parseFile
 end
