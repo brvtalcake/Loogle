@@ -2,37 +2,86 @@ import Base: show, print, println
 import JSON
 import MIMEs
 
+@enum FileKind FILE_TYPE_NOT_SUPPORTED=1 PDF=2 RTF=4 HTML=8 XML=16 TXT=32 EXCEL=64 DOC=128
+@enum FileFields f_path=1 f_size=2 f_type=4 f_timestamp=8
+
+#= mutable struct FileIndex
+    file_path::String
+    file_size::Int64
+    file_type::FileKind
+    time_stamp::Int64
+end =#
+
+# Make the type `File` a dictionary of file fields
+#= abstract type File <: AbstractDict{FileFields, Any} end =#
+
 mutable struct Index
     root::String
-    files::Array{String, 1}
+    files::Array{Dict{FileFields, Any}, 1}
     dirs::Array{String, 1}
     links::Array{String, 1}
     path_size::Int64
 end
 
+macro fPath(file)
+    return :(file[f_path])
+end
+
+macro fSize(file)
+    return :(file[f_size])
+end
+
+macro fType(file)
+    return :(file[f_type])
+end
+
+macro fTimeStamp(file)
+    return :(file[f_timestamp])
+end
+
 show(index::Index) = begin println("Index :\n\tRoot: $(index.root)\n")
-                        println("\tFiles:")
-                        for file in index.files
-                            println("\t  $(file)")
-                        end
                         println("\tDirs:")
                         for dir in index.dirs
-                            println("\t  $(dir)")
+                            println("\t$(dir)")
                         end
                         println("\tLinks:")
                         for link in index.links
-                            println("\t  $(link)")
+                            println("\t$(link)")
                         end
-                        println("\tPath size: $(index.path_size)")
+                        if index.path_size < 1000
+                            println("\tPath size: $(index.path_size) B")
+                        elseif index.path_size < 1000000
+                            println("\tPath size: $(Float64(index.path_size) / 1000) KB")
+                        elseif index.path_size < 1000000000
+                            println("\tPath size: $(Float64(index.path_size) / 1000000) MB")
+                        else
+                            println("\tPath size: $(Float64(index.path_size) / 1000000000) GB")
+                        end
+                        println("\tFiles:")
+                        for file in index.files
+                            println("\t$(file[f_path])")
+                            println("\t\tSize: $(file[f_size])")
+                            println("\t\tType: $(file[f_type])")
+                            println("\t\tLast modified: $(file[f_timestamp])")
+                        end
                         nothing
                     end
 
 print(index::Index) = show(index)
 println(index::Index) = show(index)
 
-function addFile(index, file)
-    if !in(file, index.files)
-        push!(index.files, file)
+function isFileInIndex(file, index)
+    for f in index.files
+        if f[f_path] == file
+            return true
+        end
+    end
+    return false
+end
+
+function addFile(index, file, file_kind)
+    if !isFileInIndex(file, index)
+        push!(index.files, File(file, file_kind, filesize(file), (mtime(file) > ctime(file) ? mtime(file) : ctime(file))))
     end
 end
 
@@ -56,7 +105,7 @@ function walkAndIndex(index, root_dir)
             elseif islink(joinpath(root, file))
                 addLink(index, joinpath(root, file))
             elseif isfile(joinpath(root, file))
-                addFile(index, joinpath(root, file))
+                addFile(index, joinpath(root, file), FILE_TYPE_NOT_SUPPORTED)
             end
         end
         for dir in dirs
@@ -69,12 +118,12 @@ end
 
 function checkSymlinks(index)
     for link in index.links
-        if !in(readlink(link), index.files) && !in(readlink(link), index.dirs) && !in(readlink(link), index.links)
+        if !isFileInIndex(readlink(link), index) && !in(readlink(link), index.dirs) && !in(readlink(link), index.links)
             if isdir(link)
                 addDir(index, link)
                 walkAndIndex(index, link)
             elseif isfile(link)
-                addFile(index, link)
+                addFile(index, link, FILE_TYPE_NOT_SUPPORTED)
             elseif islink(link)
                 addLink(index, link)
                 checkSymlinks(index)
@@ -87,7 +136,7 @@ end
 function calcPathSize(index)
     index.path_size = 0
     for file in index.files
-        index.path_size += filesize(file)
+        index.path_size += file[f_size]
     end
     return index.path_size
 end
@@ -127,14 +176,64 @@ function isDoc(file)
     return splited_path[2] == ".doc" || splited_path[2] == ".docx" || splited_path[2] == ".docm"
 end
 
-function isFileSupported(file)
-    return isPdf(file) || isRtf(file) || isHTML(file) || isXML(file) || isPlainTxt(file)
+function matchFileType(file)
+    if isPdf(file)
+        if isRtf(file) || isHTML(file) || isXML(file) || isPlainTxt(file) || isExcel(file) || isDoc(file)
+            return FILE_TYPE_NOT_SUPPORTED
+        else
+            return PDF
+        end
+    elseif isRtf(file)
+        if isHTML(file) || isXML(file) || isPlainTxt(file) || isExcel(file) || isDoc(file) || isPdf(file)
+            return FILE_TYPE_NOT_SUPPORTED
+        else
+            return RTF
+        end
+    elseif isHTML(file)
+        if isXML(file) || isPlainTxt(file) || isExcel(file) || isDoc(file) || isPdf(file) || isRtf(file)
+            return FILE_TYPE_NOT_SUPPORTED
+        else
+            return HTML
+        end
+    elseif isXML(file)
+        if isPlainTxt(file) || isExcel(file) || isDoc(file) || isPdf(file) || isRtf(file) || isHTML(file)
+            return FILE_TYPE_NOT_SUPPORTED
+        else
+            return XML
+        end
+    elseif isPlainTxt(file)
+        if isExcel(file) || isDoc(file) || isPdf(file) || isRtf(file) || isHTML(file) || isXML(file)
+            return FILE_TYPE_NOT_SUPPORTED
+        else
+            return TXT
+        end
+    elseif isExcel(file)
+        if isDoc(file) || isPdf(file) || isRtf(file) || isHTML(file) || isXML(file) || isPlainTxt(file)
+            return FILE_TYPE_NOT_SUPPORTED
+        else
+            return EXCEL
+        end
+    elseif isDoc(file)
+        if isPdf(file) || isRtf(file) || isHTML(file) || isXML(file) || isPlainTxt(file) || isExcel(file)
+            return FILE_TYPE_NOT_SUPPORTED
+        else
+            return DOC
+        end
+    else
+        return FILE_TYPE_NOT_SUPPORTED
+    end
+end
+
+function isFileSupported(file)::Tuple{Bool, FileKind}
+    bool_ret = isPdf(file) || isRtf(file) || isHTML(file) || isXML(file) || isPlainTxt(file) || isExcel(file) || isDoc(file)
+    return (bool_ret ? (true, matchFileType(file)) : (false, FILE_TYPE_NOT_SUPPORTED))
 end
 
 function filterIndex(index)
     i = 1
     while i <= length(index.files)
-        if !isFileSupported(index.files[i])
+        supported, _ = isFileSupported(index.files[i][f_path])
+        if !supported
             deleteat!(index.files, i)
         else
             i += 1
@@ -157,9 +256,94 @@ function indexDir(index)
 end
 
 function Index(r)
-    return indexDir(Index(r, [], [], [], 0))
+    return Index(r, Array{Dict{FileFields, Any}, 1}(), Array{String, 1}(), Array{String, 1}(), 0)
 end
 
 function Index()
     return error("No root directory specified")
 end
+
+function File()
+    return error("No path specified")
+end
+
+function File(path::String, type::FileKind, size::Int64, timestamp::Float64)
+    return Dict{FileFields, Any}(f_path => path, f_type => type, f_size => size, f_timestamp => timestamp)
+end
+
+function File(path::String, type::FileKind, size::Int64)
+    return Dict{FileFields, Any}(f_path => path, f_type => type, f_size => size, f_timestamp => (stat(path).mtime > stat(path).ctime ? stat(path).mtime : stat(path).ctime))
+end
+
+function File(path::String, type::FileKind)
+    return Dict{FileFields, Any}(f_path => path, f_type => type, f_size => filesize(path), f_timestamp => (stat(path).mtime > stat(path).ctime ? stat(path).mtime : stat(path).ctime))
+end
+
+function File(path::String)
+    return :(Dict{FileFields, Any}(f_path => $(path), f_type => matchFileType($(path)), f_size => filesize($(path)), f_timestamp => (stat($(path)).mtime > stat($(path)).ctime ? stat($(path)).mtime : stat($(path)).ctime)))
+end
+
+#= 
+function Dict{FileFields, Any}(::String, ::FileKind, ::Int64, ::Float64)
+    return Dict{FileFields, Any}(
+        f_path => String,
+        f_type => FileKind,
+        f_size => Int64,
+        f_timestamp => Float64
+    )
+end
+
+function Dict{FileFields, Any}(::String, ::FileKind, ::Int64)
+    return Dict{FileFields, Any}(
+        f_path => String,
+        f_type => FileKind,
+        f_size => Int64,
+        f_timestamp => Float64
+    )
+end
+
+function Dict{FileFields, Any}(::String, ::FileKind)
+    return Dict{FileFields, Any}(
+        f_path => String,
+        f_type => FileKind,
+        f_size => Int64,
+        f_timestamp => Float64
+    )
+end
+
+function Dict{FileFields, Any}(::String)
+    return Dict{FileFields, Any}(
+        f_path => String,
+        f_type => FileKind,
+        f_size => Int64,
+        f_timestamp => Float64
+    )
+end
+
+function Dict{FileFields, Any}()
+    return Dict{FileFields, Any}(
+        f_path => String,
+        f_type => FileKind,
+        f_size => Int64,
+        f_timestamp => Float64
+    )
+end =#
+
+#= 
+function File(p::String, type::FileKind = FILE_TYPE_NOT_SUPPORTED)
+    return File(Dict{FileFields, Any}(f_path => p, f_type => type, f_size => filesize(p), f_timestamp => (stat(p).mtime > stat(p).ctime ? stat(p).mtime : stat(p).ctime)))
+end
+
+function File(p::String, type::FileKind, size::Int64, timestamp::Float64)
+    #= return Dict{FileFields, Any}(f_path => p, f_type => type, f_size => size, f_timestamp => timestamp) =#
+    new_file = Dict{FileFields, Any}()
+    new_file[f_path] = p
+    new_file[f_type] = type
+    new_file[f_size] = size
+    new_file[f_timestamp] = timestamp
+    return new_file
+end
+
+function File(di::Dict{FileFields, Any})
+    return File(di[f_path], di[f_type], di[f_size], di[f_timestamp])
+end =#

@@ -2,12 +2,11 @@ include("index.jl")
 
 index = Index(ARGS[1])
 
+show(index)
+
 indexDir(index)
 
-println(length(index.files))
-
-
-
+show(index)
 
 #= people = [Dict("name"=>"CoolGuy", "company"=>"tech") for i=1:1000]
 companies = [Dict("name"=>"CoolTech", "address"=>"Bay Area") for i=1:100]
