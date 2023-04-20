@@ -3,3 +3,4 @@ test.jl
 src/loogle_app/zig-cache/**
 src/loogle_indexer_build/**
 src/loogle_indexer_build/
+test_/

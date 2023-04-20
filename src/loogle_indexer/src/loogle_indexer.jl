@@ -1,22 +1,22 @@
 module loogle_indexer
 
-if !@isdefined(PARSERS_JL_INCLUDED)
+@static if !@isdefined(PARSERS_JL_INCLUDED)
     include("parsers.jl")
 end
-if !@isdefined(INDEX_JL_INCLUDED)
+@static if !@isdefined(INDEX_JL_INCLUDED)
     include("index.jl")
 end
 
-function main()
+function main()::Cint
     index = Index(ARGS[1])
     show(index)
     indexDir(index)
     show(index)
+    return 0
 end
 
 function julia_main()::Cint
-    main()
-    return 0
+    return main()
 end
 
 #= people = [Dict("name"=>"CoolGuy", "company"=>"tech") for i=1:1000]

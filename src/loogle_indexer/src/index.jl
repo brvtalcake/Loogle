@@ -1,8 +1,7 @@
 INDEX_JL_INCLUDED = true
 
-import Base: show, print, println
-import JSON
-import MIMEs
+using JSON
+using MIMEs
 
 @enum FileKind FILE_TYPE_NOT_SUPPORTED=1 PDF=2 RTF=4 HTML=8 XML=16 TXT=32 EXCEL=64 DOC=128
 @enum FileFields f_path=1 f_size=2 f_type=4 f_timestamp=8
@@ -33,11 +32,11 @@ end
 
 show(index::Index) = begin println("Index :\n\tRoot: $(index.root)\n")
                         println("\tDirs:")
-                        for dir in index.dirs
+                        @polly for dir in index.dirs
                             println("\t$(dir)")
                         end
                         println("\tLinks:")
-                        for link in index.links
+                        @polly for link in index.links
                             println("\t$(link)")
                         end
                         if index.path_size < 1000
@@ -50,7 +49,7 @@ show(index::Index) = begin println("Index :\n\tRoot: $(index.root)\n")
                             println("\tPath size: $(Float64(index.path_size) / 1000000000) GB")
                         end
                         println("\tFiles:")
-                        for file in index.files
+                        @polly for file in index.files
                             println("\t$(file[f_path])")
                             println("\t\tSize: $(file[f_size])")
                             println("\t\tType: $(file[f_type])")
@@ -63,7 +62,7 @@ print(index::Index) = show(index)
 println(index::Index) = show(index)
 
 function isFileInIndex(file, index)
-    for f in index.files
+    @polly for f in index.files
         if f[f_path] == file
             return true
         end
@@ -91,7 +90,7 @@ end
 
 function walkAndIndex(index, root_dir)
     for (root, dirs, files) in walkdir(root_dir)
-        for file in files
+        @polly for file in files
             if isdir(joinpath(root, file))
                 addDir(index, joinpath(root, file))
             elseif islink(joinpath(root, file))
@@ -127,7 +126,7 @@ end
 
 function calcPathSize(index)
     index.path_size = 0
-    for file in index.files
+    @polly for file in index.files
         index.path_size += file[f_size]
     end
     return index.path_size
@@ -135,37 +134,37 @@ end
 
 function isPdf(file)
     splited_path = splitext(file)
-    return splited_path[2] == ".pdf"
+    return @inbounds splited_path[2] == ".pdf"
 end
 
 function isRtf(file)
     splited_path = splitext(file)
-    return splited_path[2] == ".rtf"
+    return @inbounds splited_path[2] == ".rtf"
 end
 
 function isHTML(file)
     splited_path = splitext(file)
-    return splited_path[2] == ".html"
+    return @inbounds splited_path[2] == ".html" || splited_path[2] == ".htm" || splited_path[2] == ".xhtml"
 end
 
 function isXML(file)
     splited_path = splitext(file)
-    return splited_path[2] == ".xml"
+    return @inbounds splited_path[2] == ".xml"
 end
 
 function isPlainTxt(file)
     splited_path = splitext(file)
-    return splited_path[2] == ".txt"
+    return @inbounds splited_path[2] == ".txt" || splited_path[2] == ".text" || splited_path[2] == ".log" || splited_path[2] == ".md"
 end
 
 function isExcel(file)
     splited_path = splitext(file)
-    return splited_path[2] == ".xls" || splited_path[2] == ".xlsx" || splited_path[2] == ".xlsm" || splited_path[2] == ".xlsb" || splited_path[2] == ".xl"
+    return @inbounds splited_path[2] == ".xls" || splited_path[2] == ".xlsx" || splited_path[2] == ".xlsm" || splited_path[2] == ".xlsb" || splited_path[2] == ".xl"
 end
 
 function isDoc(file)
     splited_path = splitext(file)
-    return splited_path[2] == ".doc" || splited_path[2] == ".docx" || splited_path[2] == ".docm"
+    return @inbounds splited_path[2] == ".doc" || splited_path[2] == ".docx" || splited_path[2] == ".docm"
 end
 
 function matchFileType(file)
@@ -216,17 +215,19 @@ function matchFileType(file)
     end
 end
 
-function isFileSupported(file)::Tuple{Bool, FileKind}
+# TODO: add more file types
+# TODO: better file type recognition by reading first bytes of the file
+@assume_effects :terminates_globally function isFileSupported(file)::Tuple{Bool, FileKind}
     bool_ret = isPdf(file) || isRtf(file) || isHTML(file) || isXML(file) || isPlainTxt(file) || isExcel(file) || isDoc(file)
     return (bool_ret ? (true, matchFileType(file)) : (false, FILE_TYPE_NOT_SUPPORTED))
 end
 
 function filterIndex(index)
     i = 1
-    while i <= length(index.files)
+    @polly while i <= length(index.files)
         supported, _ = isFileSupported(index.files[i][f_path])
         if !supported
-            deleteat!(index.files, i)
+            @inbounds deleteat!(index.files, i)
         else
             i += 1
         end
