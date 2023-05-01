@@ -55,49 +55,39 @@ function parsePDF_slow(file_path::String)
     return ret_buff, true
 end
 
-function processFile(file::Dict{FileFields, Any}, chnl)::Tuple{Dict{FileFields, Any}, String, Bool}
+function parseFile(file::Dict{FileFields, Any})::Tuple{Dict{FileFields, Any}, String, Bool}
     if file[f_path] == "" || file[f_type] == FILE_TYPE_NOT_SUPPORTED
-        put!(chnl, (file, "", false))
         return file, "", false
     elseif file[f_type] == PDF
         res = parsePDF(file[f_path])
-        put!(chnl, (file, res[1], res[2]))
         return file, res[1], res[2]
     elseif file[f_type] == RTF
         res = parseRTF(file[f_path])
-        put!(chnl, (file, res[1], res[2]))
         return file, res[1], res[2]
     elseif file[f_type] == HTML
         res = parseHTML(file[f_path])
-        put!(chnl, (file, res[1], res[2]))
         return file, res[1], res[2]
     elseif file[f_type] == XML
         res = parseXML(file[f_path])
-        put!(chnl, (file, res[1], res[2]))
         return file, res[1], res[2]
     elseif file[f_type] == TXT
         res = parseTXT(file[f_path])
-        put!(chnl, (file, res[1], res[2]))
         return file, res[1], res[2]
     elseif file[f_type] == EXCEL
         res = parseEXCEL(file[f_path])
-        put!(chnl, (file, res[1], res[2]))
         return file, res[1], res[2]
     elseif file[f_type] == DOC
         res = parseDOC(file[f_path])
-        put!(chnl, (file, res[1], res[2]))
         return file, res[1], res[2]
     else
-        put!(chnl, (file, "", false))
         return file, "", false
     end
-    put!(chnl, (file, "", false))
     return file, "", false
 end
 
-#= function processFilesInIndex(index::Index)::Vector{Typle{Dict{FileFields, Any}, String}}
+function parseFilesInIndex(index::Index)::Vector{Tuple{Dict{FileFields, Any}, String}}
     parsed_files::Vector{Tuple{Dict{FileFields, Any}, String}} = []
-    chnl = Channel{Tuple{Dict{FileFields, Any}, String}, Bool}(Inf)
+    channels = Channel{Tuple{Dict{FileFields, Any}, String}, Bool}(length(index.files))
     files_per_task = (length(index.files) - (length(index.files) % Threads.nthreads())) / Threads.nthreads()
     for i=1:Threads.nthreads()
         if i == Threads.nthreads()
@@ -105,11 +95,11 @@ end
         else
             files = index.files[(i-1)*files_per_task+1:i*files_per_task]
         end
-        Threads.@spawn (function (files_to_be_parsed, parsed_files, chnl)
-            for file in files_to_be_parsed
-                processFile(file, chnl)
+        @spawn begin
+            for file in files
+                put!(channels, parseFile(file))
             end
-        end)(files, parsed_files, chnl)
+        end
     end
     for _=1:length(index.files)
         res = take!(chnl)
@@ -119,5 +109,5 @@ end
             @warn "Error while parsing file ", res[1][f_path]
         end
     end
-
-end =#
+    return parsed_files
+end

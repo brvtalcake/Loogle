@@ -1,5 +1,10 @@
 module loogle_indexer
 
+using Base.Threads
+
+# TODO: verify if this works when compiled
+const JULIA_NUM_THREADS = Threads.nthreads()
+
 @static if !@isdefined(PARSERS_JL_INCLUDED)
     include("parsers.jl")
 end
